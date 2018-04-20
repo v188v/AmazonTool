@@ -1,0 +1,27 @@
+shell.exec("D:/Documents/RStudio/Work/Amazon/GE/URL/AMAZONurlGE_OPEN.csv");
+
+
+url=read.table("D:/Documents/RStudio/Work/Amazon/GE/URL/AMAZONurlGE_OPEN.csv", header = FALSE, sep = ",",stringsAsFactors=FALSE);
+names(url)=NULL;
+
+
+addr=function(x)
+{
+  length=nrow(x);
+  tmp="";
+  for (i in 1:length)
+  {
+   tmp[i]=x[i,1];
+   }
+   tmp;
+}
+url=addr(url);
+
+open=function(x)
+{
+shell.exec(x)
+}
+lapply(url,open);
+
+
+

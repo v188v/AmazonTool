@@ -1,0 +1,181 @@
+currentd=getwd();
+setwd("D:/Documents/RStudio/Work/Amazon/JP/DATA");
+t=Sys.time();
+t=gsub("-","_",t);
+t=gsub(":","_",t);
+fileName=paste("amazonJP",t,sep="_");
+fileName=paste(fileName,"csv",sep=".");
+timestamp=paste("Exported time: ",Sys.time(),sep="");
+write.table(timestamp,fileName, append = FALSE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+hd=cbind("imgamazonJP","ttamazonJP","brdamazonJP","prcamazonJP","nrwamazonJP","rrwamazonJP","bbamazonJP","slamazonJP","pfslamazonJP","wtamazonJP","szamazonJP","Size","color","bsramazonJP","dtamazonJP","Material");
+write.table(hd,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+url=read.table("D:/Documents/RStudio/Work/Amazon/JP/URL/AMAZONurlJP_LOCAL.csv", header = FALSE, sep = ",",stringsAsFactors=FALSE);
+names(url)=NULL;
+
+addr=function(x)
+{
+  length=nrow(x);
+  tmp="";
+  for (i in 1:length)
+  {
+   tmp[i]=x[i,1];
+   }
+   tmp;
+}
+url=addr(url);
+
+N.A.="N.A.";
+
+
+library("rvest")
+library("xml2")
+
+fetch=function(x)
+{
+
+Page =read_html(x);
+imgamazonJP=Page%>%html_nodes("#landingImage")%>%html_attr("data-a-dynamic-image");
+imgamazonJP=gsub("[{}]","",imgamazonJP); 
+imgamazonJP=gsub("\":.*","",imgamazonJP);
+imgamazonJP=gsub("\":.*","",imgamazonJP);
+imgamazonJP=gsub("\"","",imgamazonJP); 
+imgamazonJP=gsub("  ","",imgamazonJP); 
+imgamazonJP=paste("<table><img src=",imgamazonJP," height=140>",sep="");
+imgamazonJP=gsub(",","",imgamazonJP); 
+
+ttamazonJP=Page%>%html_nodes("#productTitle")%>%html_text();
+ttamazonJP=gsub("\n","",ttamazonJP);
+ttamazonJP=gsub("  ","",ttamazonJP);
+ttamazonJP=gsub(",","",ttamazonJP);
+ttamazonJP[nchar(ttamazonJP)==0]=N.A.;
+ttamazonJP[length(ttamazonJP)==0]=N.A.;
+
+slamazonJP=Page%>%html_nodes("#merchant-info")%>%html_text();
+slamazonJP=gsub("\n","",slamazonJP);
+
+slamazonJP=gsub("発送します.*","",slamazonJP);
+slamazonJP=gsub("この商品は、","",slamazonJP);
+
+bbamazonJP=slamazonJP;
+bbamazonJP=gsub(".*Amazon.co.jp が販売、","AMZ",bbamazonJP);
+bbamazonJP=gsub(".*Amazon.co.jp が","FBA",bbamazonJP);
+bbamazonJP=gsub(".*が販売、","Merch",bbamazonJP);
+bbamazonJP[bbamazonJP!="AMZ"|bbamazonJP!="FBA"|bbamazonJP!="Merch"]=="N.A."
+bbamazonJP[nchar(bbamazonJP)==0]=N.A.;
+bbamazonJP[length(bbamazonJP)==0]=N.A.;
+
+slamazonJP=gsub("が販売.*","",slamazonJP);
+slamazonJP=gsub("Amazon.co.jp","Amazon",slamazonJP);
+slamazonJP=gsub("  ","",slamazonJP);
+slamazonJP=gsub(",","",slamazonJP);
+slamazonJP[nchar(slamazonJP)==0]="N.A.";
+slamazonJP[length(slamazonJP)==0]="N.A.";
+
+pfslamazonJP=Page%>%html_nodes("#feature-bullets")%>%html_text();
+pfslamazonJP=gsub("\n","",pfslamazonJP);
+pfslamazonJP=gsub("\t","",pfslamazonJP);
+pfslamazonJP=gsub(",","",pfslamazonJP);
+pfslamazonJP=gsub("，","",pfslamazonJP);
+pfslamazonJP=gsub("  ","",pfslamazonJP);
+pfslamazonJP[nchar(pfslamazonJP)==0]=N.A.;
+pfslamazonJP[length(pfslamazonJP)==0]=N.A.;
+
+bsramazonJP=Page%>%html_nodes("#SalesRank")%>%html_text();
+bsramazonJP=gsub("\n","",bsramazonJP);
+bsramazonJP=gsub("Amazon 売れ筋ランキング","",bsramazonJP);
+bsramazonJP=gsub("ベストセラーを見る","",bsramazonJP);
+bsramazonJP=gsub("[()]","",bsramazonJP);
+bsramazonJP=gsub(",","",bsramazonJP);
+bsramazonJP[nzchar(bsramazonJP)==0]=N.A.;
+bsramazonJP[length(bsramazonJP)==0]=N.A.;
+
+dtamazonJP=Page%>%html_nodes(".date-first-available td")%>%html_text();
+dtamazonJP=gsub("\n","",dtamazonJP);
+dtamazonJP=dtamazonJP[2];
+dtamazonJP[nchar(dtamazonJP)==0]="N.A.";
+dtamazonJP[length(dtamazonJP)==0]="N.A.";
+
+rwamazonJP=Page%>%html_nodes(".average_customer_reviews td")%>%html_text();
+rwamazonJP=rwamazonJP[2];
+rwamazonJP=gsub(".*5つ星のうち ","",rwamazonJP);
+rwamazonJP=gsub("\n.*","",rwamazonJP);
+rwamazonJP[nchar(rwamazonJP)==0]="N.A.";
+rwamazonJP[length(rwamazonJP)==0]="N.A.";
+
+nrwamazonJP=Page%>%html_nodes("#acrCustomerReviewText")%>%html_text();
+nrwamazonJP=gsub("[^0-9]","",nrwamazonJP);
+nrwamazonJP[nchar(nrwamazonJP)==0]="N.A.";
+nrwamazonJP[length(nrwamazonJP)==0]="N.A.";
+
+Brand1=Page%>%html_nodes("#bylineInfo")%>%html_text();
+Brand1=gsub(",","",Brand1);
+Brand1=gsub("\n","",Brand1);
+Brand1=gsub("  ","",Brand1);
+Brand1=gsub("^\\s+|\\s+$","",Brand1);
+
+Brand2=Page%>%html_nodes("#brand")%>%html_text();
+Brand2=gsub(",","",Brand2);
+Brand2=gsub("\n","",Brand2);
+Brand2=gsub("  ","",Brand2);
+Brand2=gsub("^\\s+|\\s+$","",Brand2);
+
+Brand=paste(Brand1,Brand2,sep="");
+Brand[nchar(Brand)==0]=N.A.;
+Brand[length(Brand)==0]="N.A.";
+Brand=gsub("^\\s+|\\s+$","",Brand);
+
+
+prcamazonJP=Page%>%html_nodes("#priceblock_ourprice")%>%html_text();
+prcamazonJP=gsub("\n","",prcamazonJP);
+prcamazonJP=gsub("￥ ","",prcamazonJP);
+prcamazonJP=gsub(",","",prcamazonJP);
+prcamazonJP[nchar(prcamazonJP)==0]="N.A.";
+prcamazonJP[length(prcamazonJP)==0]="N.A.";
+
+wtpfslamazonJP=gsub("[^0-9.kgcm]","",pfslamazonJP);
+wtamazonJP=gsub(".*cm","",wtpfslamazonJP);
+wtamazonJP=gsub("g.*","",wtpfslamazonJP);
+wtamazonJP=paste(wtamazonJP,"g",sep="");
+wtamazonJP[nchar(wtamazonJP)==1]=N.A.;
+wtamazonJP[length(wtamazonJP)==1]=N.A.;
+
+szpfslamazonJP=gsub("[^0-9.×cm]","",pfslamazonJP);
+szamazonJP=gsub("cm.*","",szpfslamazonJP);
+szamazonJP=paste(szamazonJP,"cm",sep="");
+szamazonJP[nchar(szamazonJP)==2]=N.A.;
+szamazonJP[length(szamazonJP)==2]=N.A.;
+
+sz=Page%>%html_nodes("#variation_size_name .selection")%>%html_text();
+sz=gsub("\n|\t","",sz);
+
+cl=Page%>%html_nodes("#variation_color_name .selection")%>%html_text();
+cl=gsub("\n|\t","",cl);
+
+Material=Page%>%html_nodes(".col1 .techD");
+Material=as.character(Material);
+Material=gsub("[\"]","",Material);
+Material=gsub(".*(原材料|素材：)</td>\n<td class=value>","",Material);
+Material=gsub("<.*","",Material);
+Material[nchar(Material)==0]="N.A.";
+Material[length(Material)==0]="N.A.";
+
+tamazonJP=paste(imgamazonJP,slamazonJP,pfslamazonJP,wtamazonJP,szamazonJP,bsramazonJP,cl,sz,"KeyWords","Promotion",Material,dtamazonJP,"Shortcoming",ttamazonJP,Brand,prcamazonJP,nrwamazonJP,rwamazonJP,bbamazonJP,sep=",");
+write.table(tamazonJP,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE,na = "N.A.");
+tamazonJP=as.character(tamazonJP);
+tamazonJP=noquote(tamazonJP);
+print(tamazonJP);
+
+}
+
+lapply(url,fetch);
+
+
+shell.exec(fileName);
+
+
+setwd(currentd);
+rm(currentd);
+
+
+rm(fileName);
+print("Completed")

@@ -1,0 +1,252 @@
+currentd=getwd();
+setwd("D:/Documents/RStudio/Work/Amazon/FR/DATA");
+t=Sys.time();
+t=gsub("-|:| ","_",t);
+fileName=paste("",t,sep="_");
+fileName=paste(fileName,"csv",sep=".");
+timestamp=paste("exported time:",Sys.time(),sep="");
+write.table(timestamp,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+hd=cbind("img","sl","pfsl","wt","sz","bsr","dt","Material","Brand","KeyWords");
+write.table(hd,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+url=read.table("D:/Documents/RStudio/Work/Amazon/FR/URL/AMAZONurlFR_LOCAL.csv", header = FALSE, sep = ",",stringsAsFactors=FALSE);
+names(url)=NULL;
+addr=function(x)
+{
+  length=nrow(x);
+  tmp="";
+  for (i in 1:length)
+  {
+   tmp[i]=x[i,1];
+   }
+   tmp;
+}
+url=addr(url);
+
+N.A.="N.A.";
+
+
+library("rvest")
+library("xml2")
+
+fetch=function(x)
+{
+
+Page =read_html(x);
+img=Page%>%html_nodes("#landingImage")%>%html_attr("data-a-dynamic-image");
+img=gsub("[{}]","",img); 
+img=gsub("\":.*","",img);
+img=gsub("\":.*","",img);
+img=gsub("\"","",img); 
+img=gsub("  ","",img); 
+img=paste("<table><img src=",img," width=140>",sep="");
+img=gsub(",","",img);
+
+
+sl=Page%>%html_nodes("#merchant-info")%>%html_text();
+sl=gsub("\n","",sl);
+sl=gsub("[.].*","",sl);
+
+
+BB=sl;
+BB=gsub(".*et vendu par Amazon.*","AMZ",BB);
+BB=gsub(".*et .*par Amazon","FBA",BB);
+BB=gsub(".*et vendu par.*","Merch",BB);
+BB=gsub("^\\s+|\\s+$","",BB);
+BB[is.na(sl)]="N.A.";
+BB[nchar(BB)==0]="N.A.";
+BB[length(BB)==0]="N.A.";
+
+sl=gsub(".*et vendu par Amazon.*","Amazon",sl);
+sl=gsub(".*et vendu par","",sl);
+sl=gsub("et .* par Amazon","",sl);
+sl=gsub("Vendu par","",sl);
+sl=gsub(",","",sl);
+sl=gsub("^\\s+|\\s+$","",sl);
+sl[nchar(sl)==0]=N.A.;
+sl[length(sl)==0]=N.A.;
+sl[is.na(sl)]=N.A.;
+
+
+
+
+
+pfsl=Page%>%html_nodes("#feature-bullets")%>%html_text();
+
+
+
+
+
+
+
+
+
+
+pfsl=gsub("\n","",pfsl);
+pfsl=gsub("\t","",pfsl);
+pfsl=gsub(",","",pfsl);
+pfsl=gsub("，","",pfsl);
+pfsl=gsub("  ","",pfsl);
+pfsl[nchar(pfsl)==0]=N.A.;
+pfsl[length(pfsl)==0]=N.A.;
+
+bsr=Page%>%html_nodes("#SalesRank")%>%html_text();
+bsr=gsub("\n","",bsr);
+bsr=gsub("Classement des meilleures ventes d'Amazon","",bsr);
+bsr=gsub("Voir les 100 premiers","",bsr);
+bsr=gsub("[()]","",bsr);
+bsr=gsub(",","",bsr);
+bsr[nchar(bsr)==0]=N.A.;
+bsr[length(bsr)==0]=N.A.;
+
+wt=Page%>%html_nodes("#prodDetails")
+wt=as.character(wt);
+wt=gsub(".*Poids .*produit</td>\n<td class=\"value\">","",wt);
+wt=gsub("</td.*","",wt);
+wt=gsub(",",".",wt);
+wt=gsub("\n","",wt);
+wt=gsub("<div .*","",wt);
+wt[nchar(wt)==0]=N.A.;
+wt[length(wt)==0]=N.A.;
+
+
+sz=Page%>%html_nodes("#prodDetails")
+sz=as.character(sz);
+sz=gsub("[()]","",sz);
+sz=gsub(".*(Dimensions du produit L x l x h|Dimensions du colis)</td>\n<td class=\"value\">","",sz);
+sz=gsub("</td.*","",sz);
+sz=gsub(",",".",sz);
+sz=gsub("\n","",sz);
+sz=gsub("<div .*","",sz);
+sz[nchar(sz)==0]=N.A.;
+sz[length(sz)==0]=N.A.;
+
+dt=Page%>%html_nodes(".date-first-available td")%>%html_text();
+dt=gsub("\n","",dt);
+dt=dt[2];
+dt[nchar(dt)==0]=N.A.;
+dt[length(dt)==0]=N.A.;
+
+Material=Page%>%html_nodes(".col1 .techD");
+Material=as.character(Material);
+Material=gsub("[\"]","",Material);
+Material=gsub(".*Mat.riau</td>\n<td class=value>","",Material);
+Material=gsub("<.*","",Material);
+Material[nchar(Material)==0]="N.A.";
+Material[length(Material)==0]="N.A.";
+
+Brand1=Page%>%html_nodes("#bylineInfo")%>%html_text();
+Brand1=gsub(",","",Brand1);
+Brand1=gsub("\n","",Brand1);
+Brand1=gsub("  ","",Brand1);
+Brand1=gsub("^\\s+|\\s+$","",Brand1);
+
+Brand2=Page%>%html_nodes("#brand")%>%html_text();
+Brand2=gsub(",","",Brand2);
+Brand2=gsub("\n","",Brand2);
+Brand2=gsub("  ","",Brand2);
+Brand2=gsub("^\\s+|\\s+$","",Brand2);
+
+Brand=paste(Brand1,Brand2,sep="");
+Brand[nchar(Brand)==0]=N.A.;
+Brand[length(Brand)==0]="N.A.";
+Brand=gsub("^\\s+|\\s+$","",Brand);
+
+
+KeyWords=Page%>%html_nodes(".cr-lighthouse-terms")%>%html_text();
+KeyWords=gsub("\n","",KeyWords);
+KeyWords=gsub("          ","",KeyWords);
+KeyWords[nchar(KeyWords)==0]=N.A.;
+KeyWords[length(KeyWords)==0]=N.A.;
+KeyWords=gsub("^\\s+|\\s+$","",KeyWords);
+
+
+
+Promotion1=Page%>%html_node(".content .qpUL")%>%html_text();
+Promotion1=gsub("\n","",Promotion1);
+Promotion1=gsub("function getSpecialOffersClipCouponResult.*","",Promotion1);
+Promotion1=gsub("^\\s+|\\s+$","",Promotion1);
+Promotion1=gsub("[()]","",Promotion1);
+Promotion1=gsub("Here's how restrictions apply","",Promotion1);
+
+Promotion2= Page %>%html_nodes("#regularprice_savings .a-color-price")%>%html_text();
+Promotion2=gsub("[$]","",Promotion2);
+
+Promotion2=gsub("^\\s+|\\s+$","",Promotion2);
+
+Promotion3=Page%>%html_node(".apl_m_font")%>%html_text();
+Promotion3=gsub("\n","",Promotion3);
+
+Promotion4= Page %>%html_nodes("#vpcButton .a-color-success")%>%html_text();
+Promotion4=gsub("\n","",Promotion4);
+Promotion4[nchar(Promotion4)==0]="";
+Promotion4[length(Promotion4)==0]="";
+Promotion4[is.na(Promotion4)]="";
+
+Promotion=paste(Promotion1,Promotion2,Promotion3,Promotion4,sep="");
+Promotion=gsub("NA|\n|\t","",Promotion);
+Promotion=gsub(",",".",Promotion);
+Promotion[nchar(Promotion)==0]="No Promotion";
+Promotion[length(Promotion)==0]="No Promotion";
+Promotion[is.na(Promotion)]="No Promotion";
+
+Promotion=gsub("^\\s+|\\s+$","",Promotion);
+
+
+
+
+Color=Page%>%html_nodes("#variation_color_name .selection")%>%html_text();
+Color=gsub("\n|\t","",Color);
+Color[nchar(Color)==0]="N.A.";
+Color[length(Color)==0]="N.A.";
+Color=gsub("^\\s+|\\s+$","",Color);
+
+
+Color2=Page%>%html_nodes("#prodDetails .disclaim")
+Color2=as.character(Color2);
+Color2=gsub(".*Couleur:","",Color2);
+Color2=gsub(" .*","",Color2);
+Color2=gsub("<.*","",Color2);
+Color2=Color2[1];
+
+Color3=Page%>%html_nodes("#prodDetails")
+Color3=as.character(Color3);
+Color3=gsub("[()]","",Color3);
+Color3=gsub(".*Couleur</td>\n<td class=\"value\">","",Color3);
+Color3=gsub("</td.*","",Color3);
+Color3=gsub(",",".",Color3);
+Color3=gsub("\n","",Color3);
+Color3=gsub("<div .*","",Color3);
+Color3[nchar(Color3)==0]=N.A.;
+Color3[length(Color3)==0]=N.A.;
+
+Color[Color==Color2]="";
+Color[Color==Color3]="";
+Color2[Color2==Color3]="";
+
+
+Color=paste(Color,Color2,Color3,sep="");
+Color=gsub("NA|,|N.A.","",Color);
+Color[nchar(Color)==0]="N.A.";
+Color[length(Color)==0]="N.A.";
+t=cbind(img,sl,pfsl,wt,sz,bsr,Color,"Size",KeyWords,Promotion,dt,Material,Brand,BB);
+write.table(t,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE,na = "N.A.");
+
+
+
+}
+
+
+lapply(url,fetch);
+
+
+shell.exec(fileName);
+
+
+setwd(currentd);
+rm(currentd);
+rm(url);
+
+
+
+rm(fileName);
+print("Completed")

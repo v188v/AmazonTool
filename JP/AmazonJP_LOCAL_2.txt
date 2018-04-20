@@ -1,0 +1,250 @@
+currentd=getwd();
+setwd("D:/Documents/RStudio/Work/Amazon/JP/DATA");
+t=Sys.time();
+t=gsub("-","_",t);
+t=gsub(":","_",t);
+fileName=paste("amazonJP",t,sep="_");
+fileName=paste(fileName,"csv",sep=".");
+
+hd=cbind("Image","Seller","Feature","ItemWeight","ProductDimension","SalesRank","Color","Size","KeyWords","Promotion","Material","Date","","ProductName","Brand","Price","Category","Rank","Reviews","Rating","BBSeller","ASIN","Link");
+write.table(hd,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+url=read.table("D:/Documents/RStudio/Work/Amazon/JP/URL/AMAZONurlJP_LOCAL.csv", header = FALSE, sep = ",",stringsAsFactors=FALSE);
+names(url)=NULL;
+
+addr=function(x)
+{
+  length=nrow(x);
+  tmp="";
+  for (i in 1:length)
+  {
+   tmp[i]=x[i,1];
+   }
+   tmp;
+}
+url=addr(url);
+
+N.A.="N.A.";
+
+
+library("rvest")
+library("xml2")
+
+fetch=function(x)
+{
+
+Page =read_html(x);
+Image=Page%>%html_nodes("#landingImage")%>%html_attr("data-a-dynamic-image");
+Image=gsub("[{}]","",Image); 
+Image=gsub("\":.*","",Image);
+Image=gsub("\":.*","",Image);
+Image=gsub("\"","",Image); 
+Image=gsub("  ","",Image); 
+Image=paste("<table><img src=",Image," height=140>",sep="");
+Image=gsub(",","",Image); 
+
+ProductName=Page%>%html_nodes("#productTitle")%>%html_text();
+ProductName=gsub("\n","",ProductName);
+ProductName=gsub("  ","",ProductName);
+ProductName=gsub(",","",ProductName);
+ProductName[nchar(ProductName)==0]=N.A.;
+ProductName[length(ProductName)==0]=N.A.;
+
+Seller=Page%>%html_nodes("#merchant-info")%>%html_text();
+Seller=gsub("\n","",Seller);
+
+Seller=gsub("発送します.*","",Seller);
+Seller=gsub("この商品は、","",Seller);
+
+BBSeller=Seller;
+BBSeller=gsub(".*Amazon.co.jp が販売、","AMZ",BBSeller);
+BBSeller=gsub(".*Amazon.co.jp が","FBA",BBSeller);
+BBSeller=gsub(".*が販売、","Merch",BBSeller);
+BBSeller[BBSeller!="AMZ"|BBSeller!="FBA"|BBSeller!="Merch"]=="N.A."
+BBSeller[nchar(BBSeller)==0]=N.A.;
+BBSeller[length(BBSeller)==0]=N.A.;
+
+Seller=gsub("が販売.*","",Seller);
+Seller=gsub("Amazon.co.jp","Amazon",Seller);
+Seller=gsub("  ","",Seller);
+Seller=gsub(",","",Seller);
+Seller[nchar(Seller)==0]="N.A.";
+Seller[length(Seller)==0]="N.A.";
+
+Feature=Page%>%html_nodes("#feature-bullets")%>%html_text();
+Feature=gsub("\n","",Feature);
+Feature=gsub("\t","",Feature);
+Feature=gsub(",","",Feature);
+Feature=gsub("，","",Feature);
+Feature=gsub("  ","",Feature);
+Feature[nchar(Feature)==0]=N.A.;
+Feature[length(Feature)==0]=N.A.;
+
+SalesRank=Page%>%html_nodes("#SalesRank")%>%html_text();
+SalesRank=gsub("\n","",SalesRank);
+SalesRank=gsub("Amazon 売れ筋ランキング","",SalesRank);
+SalesRank=gsub("ベストセラーを見る","",SalesRank);
+SalesRank=gsub("[()]","",SalesRank);
+SalesRank=gsub(",","",SalesRank);
+SalesRank[nzchar(SalesRank)==0]=N.A.;
+SalesRank[length(SalesRank)==0]=N.A.;
+
+Rank=SalesRank[1];
+Rank=gsub(".*-","",Rank);
+Rank=gsub("位.*","",Rank);
+Rank=gsub("[^0-9]","",Rank);
+Rank=gsub("^\\s+|\\s+$","",Rank);
+Rank[nchar(Rank)==0]="No Rank";
+Rank[length(Rank)==0]="No Rank";
+Rank[is.na(Rank)]="No Rank";
+
+Category=SalesRank[1];
+Category=gsub("-.*","",Category);
+Category=gsub("^\\s+|\\s+$","",Category);
+Category[nchar(Category)==0]="No Category";
+Category[length(Category)==0]="No Category";
+Category[is.na(Category)]="No Category";
+
+
+Date=Page%>%html_nodes(".date-first-available td")%>%html_text();
+Date=gsub("\n","",Date);
+Date=Date[2];
+Date[nchar(Date)==0]="N.A.";
+Date[length(Date)==0]="N.A.";
+
+Rating=Page%>%html_nodes(".average_customer_reviews td")%>%html_text();
+Rating=Rating[2];
+Rating=gsub(".*5つ星のうち ","",Rating);
+Rating=gsub("\n.*","",Rating);
+Rating[nchar(Rating)==0]="N.A.";
+Rating[length(Rating)==0]="N.A.";
+
+Reviews=Page%>%html_nodes("#acrCustomerReviewText")%>%html_text();
+Reviews=gsub("[^0-9]","",Reviews);
+Reviews[nchar(Reviews)==0]="N.A.";
+Reviews[length(Reviews)==0]="N.A.";
+
+Brand1=Page%>%html_nodes("#bylineInfo")%>%html_text();
+Brand1=gsub(",","",Brand1);
+Brand1=gsub("\n","",Brand1);
+Brand1=gsub("  ","",Brand1);
+Brand1=gsub("^\\s+|\\s+$","",Brand1);
+
+Brand2=Page%>%html_nodes("#brand")%>%html_text();
+Brand2=gsub(",","",Brand2);
+Brand2=gsub("\n","",Brand2);
+Brand2=gsub("  ","",Brand2);
+Brand2=gsub("^\\s+|\\s+$","",Brand2);
+
+Brand=paste(Brand1,Brand2,sep="");
+Brand[nchar(Brand)==0]=N.A.;
+Brand[length(Brand)==0]="N.A.";
+Brand=gsub("^\\s+|\\s+$","",Brand);
+
+
+Price=Page%>%html_nodes("#priceblock_ourprice")%>%html_text();
+Price=gsub("\n","",Price);
+Price=gsub("￥ ","",Price);
+Price=gsub(",","",Price);
+Price[nchar(Price)==0]="N.A.";
+Price[length(Price)==0]="N.A.";
+
+ItemWeight=Page%>%html_nodes("#feature-bullets")
+ItemWeight=as.character(ItemWeight);
+ItemWeight=gsub(".*本体重量 :","",ItemWeight);
+ItemWeight=gsub("g\n.*","",ItemWeight);
+ItemWeight=gsub("<.*","",ItemWeight);
+ItemWeight[nchar(ItemWeight)==0]=N.A.;
+ItemWeight[length(ItemWeight)==0]=N.A.;
+
+
+
+ProductDimension=Page%>%html_nodes("#feature-bullets")
+ProductDimension=as.character(ProductDimension);
+ProductDimension=gsub("(..サイズ.*:).*","",ProductDimension);
+
+ProductDimension=gsub("cm\n.*","",ProductDimension);
+ProductDimension=gsub("<.*","",ProductDimension);
+ProductDimension=gsub("\n|\t|,","",ProductDimension);
+ProductDimension[nchar(ProductDimension)==0]=N.A.;
+ProductDimension[length(ProductDimension)==0]=N.A.;
+
+Size=Page%>%html_nodes("#variation_size_name .selection")%>%html_text();
+Size=gsub("\n|\t","",Size);
+
+Color=Page%>%html_nodes("#variation_color_name .selection")%>%html_text();
+Color=gsub("\n|\t","",Color);
+
+Material=Page%>%html_nodes(".col1 .techD");
+Material=as.character(Material);
+Material=gsub("[\"]","",Material);
+Material=gsub(".*原材料|.*素材：</td>\n<td Colorass=value>","",Material);
+Material=gsub("<.*","",Material);
+Material[nchar(Material)==0]="N.A.";
+Material[length(Material)==0]="N.A.";
+
+ASIN=Page%>%html_nodes(".col2 .attrG ");
+ASIN=as.character(ASIN);
+ASIN=gsub(".*ASIN</td>\n<td class=\"value\">","",ASIN);
+ASIN=gsub("<.*","",ASIN);
+ASIN[nchar(ASIN)==0]="No ASIN";
+ASIN[length(ASIN)==0]="No ASIN";
+
+Link=paste("amazon.co.jp/dp",ASIN,sep="/");
+
+KeyWords=Page%>%html_nodes(".cr-lighthouse-terms")%>%html_text();
+KeyWords=gsub("\n","",KeyWords);
+KeyWords=gsub("          ","",KeyWords);
+KeyWords[nchar(KeyWords)==0]="No KeyWords";
+KeyWords[length(KeyWords)==0]="No KeyWords";
+KeyWords=gsub("^\\s+|\\s+$","",KeyWords);
+
+
+Promotion1=Page%>%html_node(".content .qpUL")%>%html_text();
+Promotion1=gsub("\n","",Promotion1);
+Promotion1=gsub("function getSpecialOffersClipCouponResult.*","",Promotion1);
+Promotion1=gsub("^\\s+|\\s+$","",Promotion1);
+Promotion1=gsub("[()]","",Promotion1);
+Promotion1=gsub("Here's how restrictions apply","",Promotion1);
+
+Promotion2= Page %>%html_nodes("#regularprice_savings .a-color-price")%>%html_text();
+Promotion2=gsub("[$]","",Promotion2);
+
+Promotion2=gsub("^\\s+|\\s+$","",Promotion2);
+
+Promotion3=Page%>%html_node(".apl_m_font")%>%html_text();
+Promotion3=gsub("\n","",Promotion3);
+
+Promotion4= Page %>%html_nodes("#vpcButton .a-color-success")%>%html_text();
+Promotion4=gsub("\n","",Promotion4);
+Promotion4[nchar(Promotion4)==0]="";
+Promotion4[length(Promotion4)==0]="";
+Promotion4[is.na(Promotion4)]="";
+
+Promotion=paste(Promotion1,Promotion2,Promotion3,Promotion4,sep="");
+Promotion=gsub("NA|Visit.*|,","",Promotion);
+Promotion[nchar(Promotion)==0]="No Promotion";
+Promotion[length(Promotion)==0]="No Promotion";
+Promotion[is.na(Promotion)]="No Promotion";
+
+Promotion=gsub("^\\s+|\\s+$","",Promotion);
+
+Total=paste(Image,Seller,Feature,ItemWeight,ProductDimension,SalesRank,Color,Size,KeyWords,Promotion,Material,Date," ",ProductName,Brand,Price,Category,Rank,Reviews,Rating,BBSeller,ASIN,Link,sep=",");
+write.table(Total,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE,na = "N.A.");
+Total=as.character(Total);
+Total=noquote(Total);
+print(Total);
+
+}
+
+lapply(url,fetch);
+
+
+shell.exec(fileName);
+
+
+setwd(currentd);
+rm(currentd);
+
+
+rm(fileName);
+print("Completed")

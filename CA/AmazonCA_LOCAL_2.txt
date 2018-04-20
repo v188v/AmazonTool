@@ -1,0 +1,373 @@
+currentd=getwd();
+setwd("D:/Documents/RStudio/Work/Amazon/CA/DATA");
+t=Sys.time();
+t=gsub("-","_",t);
+t=gsub(":","_",t);
+fileName=paste("amazonCA",t,sep="_");
+fileName=paste(fileName,"csv",sep=".");
+
+hd=cbind("Image","Seller","Feature","ItemWeight(g)","ProductDimension(cm)","SalesRank","Color","Size","KeyWords","Promotion","Material","Date","Shortcoming","ProductName","Brand","Price","Category","Rank","EstimatedSales","EstimatedRevenue","Reviews","Rating","BBSeller","ASIN","Link");
+write.table(hd,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+url=read.table("D:/Documents/RStudio/Work/Amazon/CA/URL/AMAZONurlCA_LOCAL.csv", header = FALSE, sep = ",",stringsAsFactors=FALSE);
+names(url)=NULL;
+
+addr=function(x)
+{
+  length=nrow(x);
+  tmp="";
+  for (i in 1:length)
+  {
+   tmp[i]=x[i,1];
+   }
+   tmp;
+}
+url=addr(url);
+
+N.A.="N.A.";
+EstimatedSales="N.A.";
+EstimatedRevenue="N.A.";
+
+library("rvest")
+library("xml2")
+
+fetch=function(x)
+{
+
+Page=read_html(x);
+Image=Page%>%html_nodes("#landingImage");
+Image=Image%>%html_attr("data-a-dynamic-image");
+Image=gsub("[{]\"","",Image);
+Image=gsub("\".*","",Image);
+Image=paste("<table><img src=",Image," width=140>",sep="");
+Image[nchar(Image)==0]=N.A.;
+Image=gsub(",","",Image);
+Image[length(Image)==0]="N.A.";
+Image=gsub("\n","",Image);
+Image=gsub("^\\s+|\\s+$","",Image);
+#Image STANDARD
+
+
+ProductName=Page%>%html_nodes("#productTitle")%>%html_text();
+ProductName=gsub("\n","",ProductName);
+ProductName=gsub("  ","",ProductName);
+ProductName=gsub(",","",ProductName);
+ProductName=gsub("^\\s+|\\s+$","",ProductName);
+ProductName[nchar(ProductName)==0]=N.A.;
+ProductName[length(ProductName)==0]="N.A.";
+
+
+ 
+Brand=Page%>%html_nodes("#bylineInfo")%>%html_text();
+Brand=gsub(",","",Brand);
+Brand[nchar(Brand)==0]=N.A.;
+Brand[length(Brand)==0]="N.A.";
+Brand=gsub("\n","",Brand);
+Brand=gsub("  ","",Brand);
+Brand=gsub("^\\s+|\\s+$","",Brand);
+#Brand STANDARD 
+
+Price= Page %>%html_nodes("#priceblock_ourprice ")%>%html_text();
+Price=gsub("\n","",Price);
+Price=gsub("[^0-9.]","",Price);
+Price[nchar(Price)==0]=N.A.;
+Price[length(Price)==0]=N.A.;
+Price=gsub("^\\s+|\\s+$","",Price);
+
+
+Seller=Page%>%html_nodes("#merchant-info")%>%html_text();
+Seller=gsub("\n"," ",Seller);
+Seller=gsub(","," ",Seller);
+Seller=gsub("^\\s+|\\s+$","",Seller);
+Seller=gsub("  .*","",Seller);
+Seller=gsub(".*old by","",Seller);
+Seller=gsub("[.].*","",Seller);
+
+BBSeller=Seller;
+BBSeller=gsub(".*and Fulfilled by Amazon","FBA",BBSeller);
+
+Seller=gsub("and Fulfilled by Amazon","",Seller);
+
+BBSeller=gsub(" Amazon","AMZ",BBSeller);
+
+
+Seller=gsub("Amazon","Amazon",Seller);
+
+
+BBSeller[nchar(BBSeller)==0]="N.A.";
+BBSeller[length(BBSeller)==0]="N.A.";
+
+BBSeller[!(BBSeller=="AMZ"|BBSeller=="FBA"|BBSeller=="N.A.")]="Merch";
+BBSeller=gsub("^\\s+|\\s+$","",BBSeller);
+
+Seller=gsub("[.]","",Seller);
+Seller=gsub("^\\s+|\\s+$","",Seller);
+Seller[nchar(Seller)==0]="N.A.";
+
+
+Feature=Page%>%html_nodes("#feature-bullets")%>%html_text();
+
+
+
+Material1=gsub(".*Material:|.*MATERIAL:","",Feature);
+Material1=gsub("\n.*","",Material1);
+
+Material1=gsub(".*Material:|.*MATERIAL:","",Feature);
+Material1=gsub("\n.*","",Material1);
+
+Size2=gsub(".*Size:","",Feature);
+Size2=gsub("\n.*","",Size2);
+Size2=gsub("cm[.].*","",Size2);
+Size2=gsub("/.*","",Size2);
+
+Color3=gsub(".*Color:","",Feature);
+Color3=gsub("\n.*","",Color3);
+
+
+
+
+
+
+
+Feature=gsub("\n","",Feature);
+Feature=gsub("\t","",Feature);
+Feature=gsub(",","",Feature);
+Feature=gsub("，","",Feature);
+Feature=gsub("  ","",Feature);
+Feature=gsub("[\"]","",Feature);
+Feature=gsub("See more product details","",Feature);
+Feature=paste(Feature,collapse=";");
+Feature=gsub(",","",Feature);
+Feature=gsub("NA","",Feature);
+Feature[nchar(Feature)==0]=N.A.;
+Feature[length(Feature)==0]=N.A.;
+Feature=gsub("^\\s+|\\s+$","",Feature);
+#Feature STANDARD
+
+
+SalesRank=Page%>%html_nodes("#SalesRank")%>%html_text();
+SalesRank=gsub("\n","",SalesRank);
+SalesRank=gsub("Amazon Best Sellers Rank:|Best Sellers Rank","",SalesRank);
+SalesRank=gsub("See Top 100 in Pet Supplies","",SalesRank);
+SalesRank=gsub("See Top 100|See top 100","",SalesRank);
+SalesRank=gsub("Amazon Bestsellers Rank:","",SalesRank);
+SalesRank=gsub("[()]","",SalesRank);
+SalesRank=gsub("[{}]","",SalesRank);
+SalesRank=gsub(".zg_hrsr  margin: 0; padding: 0; list-style-type: none; .zg_hrsr_item  margin: 0 0 0 10px; .zg_hrsr_rank  display: inline-block; width: 80px; text-align: right;","",SalesRank);
+SalesRank=gsub("，","",SalesRank);
+
+Rank=SalesRank[1];
+Rank=gsub("  .*","",Rank);
+Rank=gsub("[^0-9]","",Rank);
+Rank=gsub("^\\s+|\\s+$","",Rank);
+Rank[nchar(Rank)==0]=" No Rank";
+Rank[length(Rank)==0]=" No Rank";
+Rank[is.na(Rank)]=" No Rank";
+
+Category=SalesRank[1];
+Category=gsub("  .*","",Category);
+Category=gsub(".*in","",Category);
+Category=gsub("^\\s+|\\s+$","",Category);
+Category[nchar(Category)==0]=" No Category";
+Category[length(Category)==0]=" No Category";
+Category[is.na(Category)]=" No Category";
+
+
+
+SalesRank=paste(SalesRank,collapse="");
+SalesRank=gsub(",","",SalesRank);
+SalesRank=gsub("NA","",SalesRank);
+SalesRank=gsub("  ","",SalesRank);
+
+SalesRank[nchar(SalesRank)==0]="No SalesRank";
+SalesRank[length(SalesRank)==0]="No SalesRank";
+SalesRank=gsub("^\\s+|\\s+$","",SalesRank);
+#SalesRank STANDARD
+
+
+
+ProductDimension=Page%>%html_nodes("#detail_bullets_id")%>%html_text();
+ProductDimension=gsub(".*Product Dimensions:","",ProductDimension);
+ProductDimension=gsub("\n\n\n.*","",ProductDimension);
+ProductDimension=gsub("\n","",ProductDimension);
+ProductDimension=gsub(";.*","",ProductDimension);
+ProductDimension=gsub("  ","",ProductDimension);
+ProductDimension=gsub(",","",ProductDimension);
+
+ProductDimension2=Size2;
+ProductDimension2=gsub("approx.","",ProductDimension2);
+ProductDimension2=gsub("approx.","",ProductDimension2);
+ProductDimension2=gsub("[^0-9.*x]","",ProductDimension2);
+
+
+
+ProductDimension=paste(ProductDimension,ProductDimension2,sep="");
+ProductDimension[nchar(ProductDimension)==0]=N.A.;
+ProductDimension[length(ProductDimension)==0]=N.A.;
+ProductDimension=gsub("cm","",ProductDimension);
+ProductDimension[nchar(ProductDimension)==0]="N.A.";
+ProductDimension[length(ProductDimension)==0]="N.A.";
+
+#ProductDimension STANDARD
+
+
+ItemWeight=Page%>%html_nodes("#detail_bullets_id")%>%html_text();
+ItemWeight=gsub(".*Shipping Weight:","",ItemWeight);
+ItemWeight=gsub("\n\n\n.*","",ItemWeight);
+ItemWeight=gsub("\n","",ItemWeight);
+ItemWeight=gsub("[()]","",ItemWeight);
+ItemWeight=gsub("View shipping rates and policies","",ItemWeight);
+ItemWeight=gsub("  ","",ItemWeight);
+ItemWeight[nchar(ItemWeight)==0]="N.A.";
+ItemWeight[length(ItemWeight)==0]="N.A.";
+ItemWeight=gsub("^\\s+|\\s+$","",ItemWeight);
+#ItemWeight STANDARD
+
+
+Rating=Page%>%html_nodes("#detail_bullets_id")%>%html_text();
+Rating=gsub(".*Average Customer Review:","",Rating);
+Rating=gsub("out of 5 stars.*","",Rating); 
+Rating=gsub("Be the first to review this item.*","",Rating); 
+Rating=gsub("[^0-9.]","",Rating);
+Rating=gsub("\n\n\n.*","",Rating);
+Rating=gsub(",","",Rating);
+Rating=gsub("  ","",Rating);
+Rating=gsub(" ","",Rating);
+Rating[nchar(Rating)==0]="No Rating";
+Rating[length(Rating)==0]="No Rating";
+Rating=gsub("^\\s+|\\s+$","",Rating);
+
+
+Reviews=Page%>%html_nodes("#detail_bullets_id")%>%html_text();
+Reviews=gsub(".*Average Customer Review:","",Reviews);
+Reviews=gsub("customer reviews.*|customer review.*","",Reviews);
+Reviews=gsub(".*out of 5 stars","",Reviews); 
+Reviews=gsub("Be the first to review this item.*","",Reviews);      
+Reviews=gsub("\n","",Reviews);
+Reviews=gsub("\n\n\n.*","",Reviews);
+Reviews=gsub(",","",Reviews);
+Reviews=gsub("^\\s+|\\s+$","",Reviews);
+Reviews[nchar(Reviews)==0]="No Review";
+Reviews[length(Reviews)==0]="No Review";
+Reviews=gsub("^\\s+|\\s+$","",Reviews);
+
+Date=Page%>%html_nodes("#detail_bullets_id")%>%html_text();
+Date=gsub(".*Date first available at Amazon.ca:","",Date);
+Date=gsub("\n\n\n.*","",Date);
+Date=gsub("\n","",Date);
+Date=gsub("  ","",Date);
+Date=gsub(",","",Date);
+Date[nchar(Date)==0]=N.A.;
+Date[length(Date)==0]=N.A.;
+Date=gsub("^\\s+|\\s+$","",Date);
+#Date STANDARD
+
+ASIN=Page%>%html_nodes("#detail_bullets_id")%>%html_text();
+ASIN=gsub(".*ASIN: ","",ASIN);
+ASIN=gsub("\n.*","",ASIN);
+ASIN[nchar(ASIN)==0]="N.A.";
+ASIN[length(ASIN)==0]="N.A.";
+
+Link=paste("amazon.ca/dp",ASIN,sep="/");
+Link=gsub("^\\s+|\\s+$","",Link);
+
+Color=Page%>%html_nodes("#variation_color_name .selection")%>%html_text();
+Color=gsub("\n|\t","",Color);
+Color[nchar(Color)==0]="N.A.";
+Color[length(Color)==0]="N.A.";
+Color=gsub("^\\s+|\\s+$","",Color);
+
+
+Color2=Page%>%html_nodes("#productDescription_feature_div")
+Color2=as.character(Color2);
+Color2=gsub(".*Color:","",Color2);
+Color2=gsub("<.*","",Color2);
+Color2=Color2[1];
+
+
+Color=paste(Color,Color2,Color3,sep="");
+Color=gsub("NA|,|N.A.|\n|\t","",Color);
+Color[nchar(Color)==0]="N.A.";
+Color[length(Color)==0]="N.A.";
+
+Size=Page%>%html_nodes("#variation_size_name .selection")%>%html_text();
+
+Size=paste(Size,Size2,sep="");
+Size=gsub("\n|\t|/.*|,","",Size);
+Size[nchar(Size)==0]="N.A.";
+Size[length(Size)==0]="N.A.";
+Size=gsub("^\\s+|\\s+$","",Size);
+
+
+KeyWords=Page%>%html_nodes(".cr-lighthouse-terms")%>%html_text();
+KeyWords=gsub("\n","",KeyWords);
+KeyWords=gsub("          ","",KeyWords);
+KeyWords[nchar(KeyWords)==0]="No KeyWords";
+KeyWords[length(KeyWords)==0]="No KeyWords";
+KeyWords=gsub("^\\s+|\\s+$","",KeyWords);
+
+
+Material2=Page%>%html_nodes("#productDescription_feature_div")
+Material2=as.character(Material2);
+Material2=gsub(".*Material:|.*MATERIAL:","",Material2);
+Material2=gsub("<.*","",Material2);
+Material2=Material2[1];
+
+
+Material=paste(Material1,Material2,sep="");
+Material=gsub(",","",Material);
+
+Material=gsub("NA","",Material);
+Material=gsub(";.*|[.].*","",Material);
+Material=gsub("^;+|;+$","",Material);
+Material[nchar(Material)==0]="No Data";
+Material[length(Material)==0]="No Data";
+Material[is.na(Material)]="No Data";
+
+
+Promotion1=Page%>%html_node(".content .qpUL")%>%html_text();
+Promotion1=gsub("\n","",Promotion1);
+Promotion1=gsub("function getSpecialOffersClipCouponResult.*","",Promotion1);
+Promotion1=gsub("^\\s+|\\s+$","",Promotion1);
+Promotion1=gsub("[()]","",Promotion1);
+Promotion1=gsub("Here's how restrictions apply","",Promotion1);
+
+Promotion2= Page %>%html_nodes("#regularprice_savings .a-color-price")%>%html_text();
+Promotion2=gsub("[$]","",Promotion2);
+
+Promotion2=gsub("^\\s+|\\s+$","",Promotion2);
+
+Promotion3=Page%>%html_node(".apl_m_font")%>%html_text();
+Promotion3=gsub("\n","",Promotion3);
+
+Promotion4= Page %>%html_nodes("#vpcButton .a-color-success")%>%html_text();
+Promotion4=gsub("\n","",Promotion4);
+Promotion4[nchar(Promotion4)==0]="";
+Promotion4[length(Promotion4)==0]="";
+Promotion4[is.na(Promotion4)]="";
+
+Promotion=paste(Promotion1,Promotion2,Promotion3,Promotion4,sep="");
+Promotion=gsub("NA|,|\n|\t","",Promotion);
+Promotion[nchar(Promotion)==0]="No Promotion";
+Promotion[length(Promotion)==0]="No Promotion";
+Promotion[is.na(Promotion)]="No Promotion";
+
+Promotion=gsub("^\\s+|\\s+$","",Promotion);
+
+Total=cbind(Image,Seller,Feature,ItemWeight,ProductDimension,SalesRank,Color,Size,KeyWords,Promotion,Material,Date,"",ProductName,Brand,Price,Category,Rank,EstimatedSales,EstimatedRevenue,Reviews,Rating,BBSeller,ASIN,Link);
+write.table(Total,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE,na = "N.A.");
+
+
+}
+
+lapply(url,fetch);
+
+
+shell.exec(fileName);
+
+setwd(currentd);
+rm(currentd);
+rm(url);
+
+
+rm(fileName);
+print("Completed")

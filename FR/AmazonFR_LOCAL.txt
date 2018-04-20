@@ -1,0 +1,158 @@
+currentd=getwd();
+setwd("D:/Documents/RStudio/Work/Amazon/FR/DATA");
+t=Sys.time();
+t=gsub("-|:| ","_",t);
+fileName=paste("amazonFR",t,sep="_");
+fileName=paste(fileName,"csv",sep=".");
+timestamp=paste("exported time:",Sys.time(),sep="");
+write.table(timestamp,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+hd=cbind("imgamazonFR","slamazonFR","pfslamazonFR","wtamazonFR","szamazonFR","bsramazonFR","dtamazonFR","Material","Brand","KeyWords");
+write.table(hd,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE);
+url=read.table("D:/Documents/RStudio/Work/Amazon/FR/URL/AMAZONurlFR_LOCAL.csv", header = FALSE, sep = ",",stringsAsFactors=FALSE);
+names(url)=NULL;
+addr=function(x)
+{
+  length=nrow(x);
+  tmp="";
+  for (i in 1:length)
+  {
+   tmp[i]=x[i,1];
+   }
+   tmp;
+}
+url=addr(url);
+
+N.A.="N.A.";
+
+
+library("rvest")
+library("xml2")
+
+fetch=function(x)
+{
+
+Page =read_html(x);
+imgamazonFR=Page%>%html_nodes("#landingImage")%>%html_attr("data-a-dynamic-image");
+imgamazonFR=gsub("[{}]","",imgamazonFR); 
+imgamazonFR=gsub("\":.*","",imgamazonFR);
+imgamazonFR=gsub("\":.*","",imgamazonFR);
+imgamazonFR=gsub("\"","",imgamazonFR); 
+imgamazonFR=gsub("  ","",imgamazonFR); 
+imgamazonFR=paste("<table><img src=",imgamazonFR," width=140>",sep="");
+imgamazonFR=gsub(",","",imgamazonFR);
+
+
+slamazonFR=Page%>%html_nodes("#merchant-info")%>%html_text();
+slamazonFR=gsub("\n","",slamazonFR);
+slamazonFR=gsub("Expédié et vendu par Amazon","Amazon",slamazonFR);
+slamazonFR=gsub("Expédié et vendu par","",slamazonFR);
+slamazonFR=gsub("et expédié par Amazon","",slamazonFR);
+slamazonFR=gsub("Vendu par","",slamazonFR);
+slamazonFR=gsub("  ","",slamazonFR);
+slamazonFR=gsub("[.]","",slamazonFR);
+slamazonFR=gsub("Emballage cadeau disponible","",slamazonFR);
+slamazonFR=gsub(",","",slamazonFR);
+slamazonFR[nchar(slamazonFR)==0]=N.A.;
+slamazonFR[length(slamazonFR)==0]=N.A.;
+
+pfslamazonFR=Page%>%html_nodes("#feature-bullets")%>%html_text();
+pfslamazonFR=gsub("\n","",pfslamazonFR);
+pfslamazonFR=gsub("\t","",pfslamazonFR);
+pfslamazonFR=gsub(",","",pfslamazonFR);
+pfslamazonFR=gsub("，","",pfslamazonFR);
+pfslamazonFR=gsub("  ","",pfslamazonFR);
+pfslamazonFR[nchar(pfslamazonFR)==0]=N.A.;
+pfslamazonFR[length(pfslamazonFR)==0]=N.A.;
+
+bsramazonFR=Page%>%html_nodes("#SalesRank")%>%html_text();
+bsramazonFR=gsub("\n","",bsramazonFR);
+bsramazonFR=gsub("Classement des meilleures ventes d'Amazon","",bsramazonFR);
+bsramazonFR=gsub("Voir les 100 premiers","",bsramazonFR);
+bsramazonFR=gsub("[()]","",bsramazonFR);
+bsramazonFR=gsub(",","",bsramazonFR);
+bsramazonFR[nchar(bsramazonFR)==0]=N.A.;
+bsramazonFR[length(bsramazonFR)==0]=N.A.;
+
+wtamazonFR=Page%>%html_nodes("#prodDetails")
+wtamazonFR=as.character(wtamazonFR);
+wtamazonFR=gsub(".*Poids de l'article</td>\n<td class=\"value\">","",wtamazonFR);
+wtamazonFR=gsub("</td.*","",wtamazonFR);
+wtamazonFR=gsub(",",".",wtamazonFR);
+wtamazonFR=gsub("\n","",wtamazonFR);
+wtamazonFR=gsub("<div .*","",wtamazonFR);
+wtamazonFR[nchar(wtamazonFR)==0]=N.A.;
+wtamazonFR[length(wtamazonFR)==0]=N.A.;
+
+
+szamazonFR=Page%>%html_nodes("#prodDetails")
+szamazonFR=as.character(szamazonFR);
+szamazonFR=gsub("[()]","",szamazonFR);
+szamazonFR=gsub(".*(Dimensions du produit L x l x h|Dimensions du colis)</td>\n<td class=\"value\">","",szamazonFR);
+szamazonFR=gsub("</td.*","",szamazonFR);
+szamazonFR=gsub(",",".",szamazonFR);
+szamazonFR=gsub("\n","",szamazonFR);
+szamazonFR=gsub("<div .*","",szamazonFR);
+szamazonFR[nchar(szamazonFR)==0]=N.A.;
+szamazonFR[length(szamazonFR)==0]=N.A.;
+
+dtamazonFR=Page%>%html_nodes(".date-first-available td")%>%html_text();
+dtamazonFR=gsub("\n","",dtamazonFR);
+dtamazonFR=dtamazonFR[2];
+dtamazonFR[nchar(dtamazonFR)==0]=N.A.;
+dtamazonFR[length(dtamazonFR)==0]=N.A.;
+
+Material=Page%>%html_nodes(".col1 .techD");
+Material=as.character(Material);
+Material=gsub("[\"]","",Material);
+Material=gsub(".*Mat.riau</td>\n<td class=value>","",Material);
+Material=gsub("<.*","",Material);
+Material[nchar(Material)==0]="N.A.";
+Material[length(Material)==0]="N.A.";
+
+Brand1=Page%>%html_nodes("#bylineInfo")%>%html_text();
+Brand1=gsub(",","",Brand1);
+Brand1=gsub("\n","",Brand1);
+Brand1=gsub("  ","",Brand1);
+Brand1=gsub("^\\s+|\\s+$","",Brand1);
+
+Brand2=Page%>%html_nodes("#brand")%>%html_text();
+Brand2=gsub(",","",Brand2);
+Brand2=gsub("\n","",Brand2);
+Brand2=gsub("  ","",Brand2);
+Brand2=gsub("^\\s+|\\s+$","",Brand2);
+
+Brand=paste(Brand1,Brand2,sep="");
+Brand[nchar(Brand)==0]=N.A.;
+Brand[length(Brand)==0]="N.A.";
+Brand=gsub("^\\s+|\\s+$","",Brand);
+
+
+KeyWords=Page%>%html_nodes(".cr-lighthouse-terms")%>%html_text();
+KeyWords=gsub("\n","",KeyWords);
+KeyWords=gsub("          ","",KeyWords);
+KeyWords[nchar(KeyWords)==0]=N.A.;
+KeyWords[length(KeyWords)==0]=N.A.;
+KeyWords=gsub("^\\s+|\\s+$","",KeyWords);
+
+tamazonFR=cbind(imgamazonFR,slamazonFR,pfslamazonFR,wtamazonFR,szamazonFR,bsramazonFR,dtamazonFR,Material,Brand,KeyWords);
+write.table(tamazonFR,fileName, append = TRUE,sep = ",", row.names = FALSE,col.names = FALSE,quote=FALSE,na = "N.A.");
+
+
+
+}
+
+
+lapply(url,fetch);
+
+
+shell.exec(fileName);
+
+
+setwd(currentd);
+rm(currentd);
+rm(url);
+
+
+
+rm(fileName);
+print("Completed")
